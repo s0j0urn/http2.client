@@ -69,7 +69,8 @@ public class Http2ClientBenchMark {
 		int port =  Integer.parseInt(urlsList.get(0).substring(urlsList.get(0).indexOf(':', 8)+1, urlsList.get(0).indexOf('/', 8)));
 
 		final AtomicInteger success_status_count = new AtomicInteger(0);
-
+        System.out.println("Host is " + host);
+        System.out.println("Port is" + port);
 		// Connect to host
 		FuturePromise<Session> sessionPromise = new FuturePromise<>();
 		lowLevelClient.connect(sslContextFactory, new InetSocketAddress(host, port), new ServerSessionListener.Adapter(), sessionPromise);
@@ -99,19 +100,19 @@ public class Http2ClientBenchMark {
 			//Request Object
 			//MetaData.Request metaData = new MetaData.Request("GET", new HttpURI("https://" + host + ":" + port + "/"), HttpVersion.HTTP_2, requestFields);
 			//MetaData.Request metaData = new MetaData.Request("GET", new HttpURI("https://webtide.com:443/"), HttpVersion.HTTP_2, requestFields);
-			System.out.println(new HttpURI("https://" + host + ":" + port + urlsList.get(i).substring(urlsList.get(i).indexOf('/',8))));
+			//System.out.println(new HttpURI("https://" + host + ":" + port + urlsList.get(i).substring(urlsList.get(i).indexOf('/',8))));
 			MetaData.Request metaDataRequest = new MetaData.Request("GET", new HttpURI("https://" + host + ":" + port + urlsList.get(i).substring(urlsList.get(i).indexOf('/',8))), HttpVersion.HTTP_2, requestFields);
 			//Create Headers frame
-			HeadersFrame headersFrame = new HeadersFrame(metaDataRequest,null,false);
+			HeadersFrame headersFrame = new HeadersFrame(metaDataRequest,null,true);
 
 			//Listen to response frames.
-			System.out.println("Going to start streams");
+			//System.out.println("Going to start streams");
 			session.newStream(headersFrame, new Promise.Adapter<Stream>(), new Stream.Listener.Adapter()
 			{
 				@Override
 				public void onHeaders(Stream stream, HeadersFrame frame)
 				{
-					//System.err.println(frame);
+					System.out.println("Header frame " + frame);
 					//System.out.println("[" + frame.getStreamId() + "] HEADERS " + frame.getMetaData().toString());
 					//frame.getMetaData().getFields().forEach(field -> System.out.println("[" + stream.getId() + "]     " + field.getName() + ": " + field.getValue()));
 					if (frame.isEndStream()) {
@@ -123,12 +124,13 @@ public class Http2ClientBenchMark {
 				@Override
 				public void onData(Stream stream, DataFrame frame, Callback callback)
 				{
-					//System.err.println(frame);
+					System.out.println("Data frame" + frame);
 					//byte[] bytes = new byte[frame.getData().remaining()];
 					//frame.getData().get(bytes);
 					//System.out.println("[" + frame.getStreamId() + "] DATA " + new String(bytes));
 					//callback.succeeded();
 					//System.out.println(frame.toString());
+					callback.succeeded();
 					if (frame.isEndStream()) {
 						System.out.println("on data frame end" + frame.getStreamId());
 						//phaser.arrive();
@@ -140,7 +142,7 @@ public class Http2ClientBenchMark {
 				{
 					//System.err.println(frame);
 					//System.out.println("[" + frame.getStreamId() + "] PUSH_PROMISE " + frame.getMetaData().toString());
-					System.out.println("Push promise frame received " + frame.getPromisedStreamId() + frame.getStreamId());
+					System.out.println("Push promise frame received with promised stream id " + frame.getPromisedStreamId() + " Current stream id " +  frame.getStreamId());
 					//phaser.register();
 					return this;
 				}
