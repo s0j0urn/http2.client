@@ -28,7 +28,11 @@ import org.eclipse.jetty.util.Callback;
 import org.eclipse.jetty.http2.frames.PushPromiseFrame;
 import org.eclipse.jetty.http2.api.Stream;
 
-
+/**
+ * 
+ * @author intel
+ * How to run : java -Xbootclasspath/p:alpn-boot-8.1.7.v20160121.jar -jar http_2_asynchronousclient.jar all_urls.txt &> output.txt
+ */
 
 public class Http2ClientBenchMark {
 	//Just testing egit
