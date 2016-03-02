@@ -6,9 +6,11 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Phaser;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.eclipse.jetty.http.HttpFields;
@@ -17,15 +19,21 @@ import org.eclipse.jetty.http.HttpURI;
 import org.eclipse.jetty.http.HttpVersion;
 import org.eclipse.jetty.http.MetaData;
 import org.eclipse.jetty.http2.api.Session;
+import org.eclipse.jetty.http2.api.Stream.Listener;
 import org.eclipse.jetty.http2.api.server.ServerSessionListener;
 import org.eclipse.jetty.http2.client.HTTP2Client;
+import org.eclipse.jetty.http2.frames.GoAwayFrame;
 import org.eclipse.jetty.http2.frames.HeadersFrame;
+import org.eclipse.jetty.http2.frames.PingFrame;
+import org.eclipse.jetty.http2.frames.ResetFrame;
+import org.eclipse.jetty.http2.frames.SettingsFrame;
 import org.eclipse.jetty.util.FuturePromise;
 import org.eclipse.jetty.util.Promise;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.eclipse.jetty.http2.frames.DataFrame;
 import org.eclipse.jetty.util.Callback;
 import org.eclipse.jetty.http2.frames.PushPromiseFrame;
+import org.eclipse.jetty.http2.hpack.HpackContext.StaticEntry;
 import org.eclipse.jetty.http2.api.Stream;
 
 /**
@@ -52,11 +60,12 @@ public class Http2ClientBenchMark {
 
 		urlsList = Files.readAllLines(Paths.get(fileName));
 		urlsListSize = urlsList.size();
-
+		
+		//final Integer[] message = new Integer[]{1};
 		/*try (Stream<String> stream = Files.lines(Paths.get(fileName))) {
 
 			urlsList = stream.collect(Collectors.toList());
-			urlsListSize = urlsList.size();
+			urlsListSize = urlsList.size(); 
 
 		} catch (IOException e) {
 			System.out.println("Cannot open file");
@@ -75,13 +84,73 @@ public class Http2ClientBenchMark {
 		String host =  urlsList.get(0).substring(8, urlsList.get(0).indexOf(':', 8));
 		//int port =  443;
 		int port =  Integer.parseInt(urlsList.get(0).substring(urlsList.get(0).indexOf(':', 8)+1, urlsList.get(0).indexOf('/', 8)));
-
+		
 		final AtomicInteger success_status_count = new AtomicInteger(0);
 		System.out.println("Host is " + host);
 		System.out.println("Port is" + port);
 		// Connect to host
+		
 		FuturePromise<Session> sessionPromise = new FuturePromise<>();
-		lowLevelClient.connect(sslContextFactory, new InetSocketAddress(host, port), new ServerSessionListener.Adapter(), sessionPromise);
+		lowLevelClient.connect(sslContextFactory, new InetSocketAddress(host, port), new ServerSessionListener() {
+			
+			@Override
+			public void onSettings(Session arg0, SettingsFrame arg1) {
+				// TODO Auto-generated method stub
+				
+				
+						
+					//	message[0] = arg1.getSettings().get(3);
+					//	System.out.println(message[0]);
+			}
+			
+			@Override
+			public void onReset(Session arg0, ResetFrame arg1) {
+				// TODO Auto-generated method stub
+				
+			}
+			
+			@Override
+			public Map<Integer, Integer> onPreface(Session arg0) {
+				// TODO Auto-generated method stub
+				return null;
+			}
+			
+			@Override
+			public void onPing(Session arg0, PingFrame arg1) {
+				// TODO Auto-generated method stub
+				
+			}
+			
+			@Override
+			public Listener onNewStream(Stream arg0, HeadersFrame arg1) {
+				// TODO Auto-generated method stub
+				return null;
+			}
+			
+			@Override
+			public boolean onIdleTimeout(Session arg0) {
+				// TODO Auto-generated method stub
+				return false;
+			}
+			
+			@Override
+			public void onFailure(Session arg0, Throwable arg1) {
+				// TODO Auto-generated method stub
+				
+			}
+			
+			@Override
+			public void onClose(Session arg0, GoAwayFrame arg1) {
+				// TODO Auto-generated method stub
+				
+			}
+			
+			@Override
+			public void onAccept(Session arg0) {
+				// TODO Auto-generated method stub
+				
+			}
+		}, sessionPromise);
 		//Obtain Client Session
 		Session session = sessionPromise.get();
 
@@ -104,6 +173,8 @@ public class Http2ClientBenchMark {
 		requestFields.put(HttpHeader.USER_AGENT, "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Ubuntu Chromium/48.0.2564.82 Chrome/48.0.2564.82 Safari/537.36");
 		
 		// Hardcoded to 100 to respect h2o settings frame. Can be easily generalized as well by reading onSetting frame in a class overriding Session.listener
+		//Thread.sleep(1000);
+		//System.out.println("max = " + message[0]);
 		Semaphore no_of_concurrent_streams = new Semaphore(100);
 		//final CountDownLatch latch = new CountDownLatch(it should be  = urlsListSize +  no_of_pushed_resources);
 		//final CountDownLatch latch = new CountDownLatch(220);
@@ -225,7 +296,8 @@ public class Http2ClientBenchMark {
 			});
 		}
 
-		phaser.arriveAndAwaitAdvance();
+		//phaser.arriveAndAwaitAdvance();
+		 phaser.awaitAdvanceInterruptibly(phaser.arrive(), 5, TimeUnit.SECONDS);
 		System.out.println(System.currentTimeMillis() - start + "ms" );
         //latch.await();
 		//Thread.sleep(20000);
